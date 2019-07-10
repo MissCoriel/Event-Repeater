@@ -1,0 +1,10 @@
+{
+  "Name": "Event Repeater",
+  "Author": "MissCoriel",
+  "Version": "3.0.0",
+  "Description": "Create and Install Repeater Packs Now with Mail Tags",
+  "UniqueID": "misscoriel.eventrepeater",
+  "EntryDll": "EventRepeater.dll",
+  "MinimumApiVersion": "2.10.0",
+  "UpdateKeys": [ "Nexus: 3642" ]
+}

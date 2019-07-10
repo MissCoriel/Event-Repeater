@@ -1,0 +1,13 @@
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CoreCompileInputs.cache
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\Example.json
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.csprojAssemblyReference.cache
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CoreCompileInputs.cache
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.dll
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.pdb
+D:\EventRepeater\EventRepeater\bin\Release\Example.json
+D:\EventRepeater\EventRepeater\bin\Release\EventRepeater.dll
+D:\EventRepeater\EventRepeater\bin\Release\EventRepeater.pdb
