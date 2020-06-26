@@ -1,0 +1,6 @@
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.CoreCompileInputs.cache
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\config.json
