@@ -7,6 +7,9 @@ using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using Newtonsoft.Json;
+using System.Runtime.InteropServices;
+using System.Diagnostics.Eventing.Reader;
+using System.Linq;
 
 namespace EventRepeater
 {
@@ -20,6 +23,7 @@ namespace EventRepeater
         private HashSet<int> EventsToForget = new HashSet<int>();
         private HashSet<string> MailToForget = new HashSet<string>();
         private HashSet<int> ResponseToForget = new HashSet<int>();
+        private Event LastEvent;
 
         
 
@@ -32,6 +36,7 @@ namespace EventRepeater
         public override void Entry(IModHelper helper)
         {
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
+            helper.Events.GameLoop.UpdateTicked += this.UpdateTicked;
 
             // collect data models
             // IList<ThingsToForget> models = new List<ThingsToForget>();
@@ -109,6 +114,128 @@ namespace EventRepeater
         /// <summary>Raised after the game begins a new day (including when the player loads a save).</summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event data.</param>
+        /// 
+        private void UpdateTicked(object sender, UpdateTickedEventArgs e)
+        {
+            if (this.LastEvent == null && Game1.CurrentEvent != null)
+                this.OnEventStarted(Game1.CurrentEvent);
+
+            this.LastEvent = Game1.CurrentEvent;
+        }
+
+        private void OnEventStarted(Event @event)
+        {
+            Game1.CurrentEvent.eventCommands = this.ExtractCommands(Game1.CurrentEvent.eventCommands, new[] { "forgetEvent", "forgetMail", "forgetResponse" }, out ISet<string> extractedCommands);
+
+            foreach (string command in extractedCommands)
+            {
+                // extract command name + raw ID
+                string commandName, rawId;
+                {
+                    string[] parts = command.Split(' ');
+                    commandName = parts[0];
+                    if (parts.Length != 2) // command name + ID
+                    {
+                        this.Monitor.Log($"The {commandName} command requires one argument (event command: {command}).", LogLevel.Warn);
+                        continue;
+                    }
+                    rawId = parts[1];
+                }
+
+                // handle command
+                switch (commandName)
+                {
+                    case "forgetEvent":
+                        if (int.TryParse(rawId, out int eventID))
+                            Game1.player.eventsSeen.Remove(eventID);
+                        else
+                            this.Monitor.Log($"Could not parse event ID '{rawId}' for {commandName} command.", LogLevel.Warn);
+                        break;
+
+                    case "forgetMail":
+                        Game1.player.mailReceived.Remove(rawId);
+                        break;
+
+                    case "forgetResponse":
+                        if (int.TryParse(rawId, out int responseID))
+                            Game1.player.eventsSeen.Remove(responseID);
+                        else
+                            this.Monitor.Log($"Could not parse response ID '{rawId}' for {commandName} command.", LogLevel.Warn);
+                        break;
+
+                    default:
+                        this.Monitor.Log($"Unrecognized command name '{commandName}'.", LogLevel.Warn);
+                        break;
+                }
+            }
+        }
+        private string[] ExtractCommands(string[] commands, string[] commandNamesToExtract, out ISet<string> extractedCommands)
+        {
+            var otherCommands = new List<string>();
+            extractedCommands = new HashSet<string>();
+            foreach (string command in commands)
+            {
+                if (commandNamesToExtract.Any(name => command.StartsWith(name)))
+                    extractedCommands.Add(command);
+                else
+                    otherCommands.Add(command);
+            }
+
+            return otherCommands.ToArray();
+        }
+        /* private string[] ExtractForgetEventIds(string[] commands, out ISet<int> eventIds)
+         {
+             eventIds = new HashSet<int>();
+
+             var otherCommands = new List<string>();
+
+             foreach (string command in commands)
+             {
+                 // leave other commands as-is
+                 if (!command.StartsWith("eventForget"))
+                 {
+                     otherCommands.Add(command);
+                     continue;
+                 }
+
+                 // parse and remove eventForget command
+                 foreach (string rawId in command.Split(' ').Skip(1))
+                 {
+                     if (int.TryParse(rawId, out int id))
+                         eventIds.Add(id);
+                     else
+                         this.Monitor.Log($"Could not parse event ID '{rawId}' for eventForget command.", LogLevel.Warn);
+                 }
+             }
+
+             return otherCommands.ToArray();
+         }
+        /* private string[] ExtractForgetResponseIds(string[] commands, out ISet<int> responseIds)
+         {
+             responseIds = new HashSet<int>();
+             var otherCommands = new List<string>();
+             foreach (string command in commands)
+             {
+                 // leave other commands as-is
+                 if (!command.StartsWith("responseForget"))
+                 {
+                     otherCommands.Add(command);
+                     continue;
+                 }
+
+                 // parse and remove eventForget command
+                 foreach (string rawId in command.Split(' ').Skip(1))
+                 {
+                     if (int.TryParse(rawId, out int id))
+                         responseIds.Add(id);
+                     else
+                         this.Monitor.Log($"Could not parse event ID '{rawId}' for eventForget command.", LogLevel.Warn);
+                 }
+             }
+
+             return otherCommands.ToArray();
+
+         }*/
         private void OnDayStarted(object sender, DayStartedEventArgs e)
         {
             foreach (var seenEvent in this.EventsToForget)
