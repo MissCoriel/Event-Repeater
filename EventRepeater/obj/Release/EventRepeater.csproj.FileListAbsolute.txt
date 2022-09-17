@@ -1,0 +1,27 @@
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CoreCompileInputs.cache
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Release\Example.json
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Release\EventRepeater.csprojAssemblyReference.cache
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CoreCompileInputs.cache
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.dll
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.pdb
+D:\EventRepeater\EventRepeater\bin\Release\EventRepeater.dll
+D:\EventRepeater\EventRepeater\bin\Release\EventRepeater.pdb
+D:\EventRepeater\EventRepeater\bin\Release\Newtonsoft.Json.dll
+D:\EventRepeater\EventRepeater\bin\Release\Newtonsoft.Json.xml
+D:\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CopyComplete
+D:\EventRepeater\EventRepeater\bin\Release\Readme.txt
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\Readme.txt
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\Newtonsoft.Json.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\Newtonsoft.Json.xml
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CoreCompileInputs.cache
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Release\EventRepeater.csproj.CopyComplete
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Release\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Release\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Release\manifest.json
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Release\EventRepeater.csprojAssemblyReference.cache
