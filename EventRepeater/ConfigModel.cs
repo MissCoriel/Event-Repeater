@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using StardewModdingAPI;
-using StardewModdingAPI.Utilities;
+﻿using StardewModdingAPI.Utilities;
 
 namespace EventRepeater
 {
-    internal class ConfigModel
+    internal sealed class ConfigModel
     {
         //public SButton EventWindow { get; set; } = SButton.Pause;
         public KeybindList EmergencySkip { get; set; } = KeybindList.Parse("LeftControl + S");
