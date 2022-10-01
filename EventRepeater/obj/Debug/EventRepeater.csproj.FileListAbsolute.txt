@@ -14,3 +14,4 @@ E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csp
 E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.CopyComplete
 E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.dll
 E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.AssemblyReference.cache

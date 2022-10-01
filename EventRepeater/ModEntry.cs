@@ -25,9 +25,11 @@ namespace EventRepeater
         private HashSet<int> ResponseToForget = new HashSet<int>();
         private Event LastEvent;
         private List<int> ManualRepeaterList = new List<int>();
-        private bool ShowEventIDs = true;
-
-
+        private bool ShowEventIDs = false;
+        private int LastPlayed;
+        private ConfigModel Config; //Menu Button
+        int EventRemovalTimer = -1;
+        int eventtoskip; //uses Game1.CurrentEvent.id to acquire the ID
         /*********
         ** Public methods
         *********/
@@ -37,7 +39,9 @@ namespace EventRepeater
         {
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.GameLoop.UpdateTicked += this.UpdateTicked;
-
+            helper.Events.Input.ButtonReleased += this.OnButtonReleased;
+            helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
+            this.Config = helper.ReadConfig<ConfigModel>();
             // collect data models
             IList<ThingsToForget> models = new List<ThingsToForget>();
             foreach (IModInfo mod in this.Helper.ModRegistry.GetAll())
@@ -122,11 +126,47 @@ namespace EventRepeater
                 this.OnEventStarted(Game1.CurrentEvent);
 
             this.LastEvent = Game1.CurrentEvent;
-        }
+            if (this.EventRemovalTimer > 0)
+            {
+                this.EventRemovalTimer--;
+                if (this.EventRemovalTimer == 0)
+                {
+                    Game1.player.eventsSeen.Remove(eventtoskip);
+                    Monitor.Log("Event removed from seen list", LogLevel.Debug);
 
+                }
+            }
+
+
+        }
+        public void OnButtonReleased(object sender, ButtonReleasedEventArgs e)
+        {
+           /* if(e.Button == this.Config.EventWindow)
+            {
+                if (Game1.activeClickableMenu == null)
+                    Game1.activeClickableMenu = new EventRepeaterWindow(this.Helper.Data, this.Helper.DirectoryPath);
+            }*/
+        }
+        public void OnButtonsChanged(object sender, ButtonsChangedEventArgs e)
+        {
+            if (this.Config.EmergencySkip.JustPressed())
+            {
+                StopEventCommand(null, null);
+            }
+            if (this.Config.ShowInfo.JustPressed())
+            {
+                ShowInfoCommand(null, null);
+            }
+            if (this.Config.NormalSkip.JustPressed())
+            {
+                EmergencySkipCommand(null, null);
+            };
+        }
         private void OnEventStarted(Event @event)
         {
             Monitor.Log($"Current Event: {Game1.CurrentEvent.id}", LogLevel.Debug);
+            LastPlayed = Game1.CurrentEvent.id;
+            
             if(ShowEventIDs == true)
             {
                 Game1.addHUDMessage(new HUDMessage($"Current Event: {Game1.CurrentEvent.id}!"));
@@ -317,20 +357,24 @@ namespace EventRepeater
             {
                 ShowEventIDs = false;
                 Game1.addHUDMessage(new HUDMessage("In Game Alerts Disabled!"));
+                return;
             }
             if (ShowEventIDs == false)
             {
                 ShowEventIDs = true;
                 Game1.addHUDMessage(new HUDMessage("In Game Alerts Enabled!"));
+                return;
             }
         }
         private void EmergencySkipCommand(string command, string[] parameters)
         {
-            int eventtoskip = Game1.CurrentEvent.id;
+            eventtoskip = Game1.CurrentEvent.id;
+
             try
             {
+                                
                 Game1.CurrentEvent.skipEvent();
-                Monitor.Log($"Event {eventtoskip} was successfully skipped!");
+                Monitor.Log($"Event {eventtoskip} was successfully skipped!", LogLevel.Debug);
                 if (ShowEventIDs == true)
                 {
                     Game1.addHUDMessage(new HUDMessage($"Event {eventtoskip} was successfully skipped!"));
@@ -344,16 +388,24 @@ namespace EventRepeater
         }
         private void StopEventCommand(string command, string[] parameters)
         {
-            int suddenstop = Game1.CurrentEvent.id;
+            eventtoskip = Game1.CurrentEvent.id;
+            EventRemovalTimer = 120;
             try
             {
+                string[] currentEventCommandList = Game1.CurrentEvent.eventCommands;
+                int stoppedCommand = Game1.CurrentEvent.currentCommand;
+                Monitor.Log($"Emergency skip was engaged! Event Broke at this command: {currentEventCommandList[stoppedCommand]}", LogLevel.Error);
+                currentEventCommandList[stoppedCommand] = currentEventCommandList[stoppedCommand] + " <=== Event was stopped here!!";
+
                 Game1.CurrentEvent.exitEvent();
-                Monitor.Log($"The Event {suddenstop} has been interrupted. You can remove the event manually if needed.");
+                Game1.warpFarmer("FarmHouse", 0, 0, false);
+                Monitor.Log($"The Event {eventtoskip} has been interrupted. A dump of the Event is in the SDV folder.");
                 if (ShowEventIDs == true)
                 {
-                    Game1.addHUDMessage(new HUDMessage($"The Event {suddenstop} has been interrupted.  You can remove the event manually if needed."));
+                    Game1.addHUDMessage(new HUDMessage($"The Event {eventtoskip} has been interrupted.  A dump of the Event is in the SDV folder."));
                 }
-
+                File.WriteAllLines(Path.Combine(Environment.CurrentDirectory, $"EventDump{eventtoskip}.txt"), currentEventCommandList);
+                                
             }
             catch (Exception ex)
             {
@@ -402,6 +454,25 @@ namespace EventRepeater
             if (parameters.Length == 0) return;
             try
             {
+                if(parameters[0] == "last")
+                {
+                    if (LastPlayed == 0)
+                    {
+                        Monitor.Log("There is no previously played event.  Did you restart your game?", LogLevel.Error);
+                        return;
+                    }
+                    else
+                    {
+                        Game1.player.eventsSeen.Remove(LastPlayed);
+                        Monitor.Log($"Last played event, {LastPlayed}, was removed!", LogLevel.Debug);
+                        if (ShowEventIDs == true)
+                        {
+                            Game1.addHUDMessage(new HUDMessage($"Last played event, {LastPlayed}, was removed!"));
+                        }
+
+                    }
+
+                }
                 if (parameters[0] == "all")
                 {
                     Game1.player.eventsSeen.Clear();
