@@ -166,18 +166,23 @@ namespace EventRepeater
 
         public void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
         {
-            if (this.Config.EmergencySkip.JustPressed())
-            {
-                StopEventCommand(null, null);
-            }
             if (this.Config.ShowInfo.JustPressed())
             {
                 ShowInfoCommand(null, null);
             }
+
+            if (Game1.CurrentEvent is null)
+                return;
+
+
             if (this.Config.NormalSkip.JustPressed())
             {
                 EmergencySkipCommand(null, null);
-            };
+            }
+            if (this.Config.EmergencySkip.JustPressed())
+            {
+                StopEventCommand(null, null);
+            }
         }
 
         private void OnEventStarted(Event @event)
@@ -395,6 +400,9 @@ namespace EventRepeater
 
         private void EmergencySkipCommand(string? command, string[]? parameters)
         {
+            if (Game1.CurrentEvent is null)
+                return;
+
             eventtoskip = Game1.CurrentEvent.id;
 
             try
@@ -416,6 +424,9 @@ namespace EventRepeater
 
         private void StopEventCommand(string? command, string[]? parameters)
         {
+            if (Game1.CurrentEvent is null)
+                return;
+
             eventtoskip = Game1.CurrentEvent.id;
             EventRemovalTimer = 120;
             try
