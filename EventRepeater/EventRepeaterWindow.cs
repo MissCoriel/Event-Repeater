@@ -13,10 +13,10 @@ namespace EventRepeater
 {
     class EventRepeaterWindow : IClickableMenu
     {
-        public ClickableTextureComponent forgetEvent;
-        public ClickableTextureComponent forgetMail;
-        public ClickableTextureComponent forgetResponse;
-        public ClickableTextureComponent toggleInfo;
+        public ClickableTextureComponent? forgetEvent;
+        public ClickableTextureComponent? forgetMail;
+        public ClickableTextureComponent? forgetResponse;
+        public ClickableTextureComponent? toggleInfo;
         public EventRepeaterWindow(IDataHelper helper, string modBaseDirectory) : base((int)Utility.getTopLeftPositionForCenteringOnScreen(980, 470).X, (int)Utility.getTopLeftPositionForCenteringOnScreen(980, 470).Y, 980, 470, true)
         {
             int menuX = (int)Utility.getTopLeftPositionForCenteringOnScreen(980, 470).X;
