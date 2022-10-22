@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "XYcUI1BWeg56I1GS9oKXfNZHnaEiItU8jtr5jU+PfQrDsMyBMLHcNm6XE3ef/A5jbrpuZZtU+r49LPgdRtO7XA==",
+  "success": true,
+  "projectFilePath": "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\missc\\.nuget\\packages\\pathoschild.stardew.modbuildconfig\\4.0.1\\pathoschild.stardew.modbuildconfig.4.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}

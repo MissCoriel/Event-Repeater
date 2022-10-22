@@ -1,0 +1,10 @@
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.csproj.AssemblyReference.cache
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.GeneratedMSBuildEditorConfig.editorconfig
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.AssemblyInfoInputs.cache
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.AssemblyInfo.cs
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.csproj.CoreCompileInputs.cache
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\net5.0\EventRepeater.deps.json
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\net5.0\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\net5.0\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\net5.0\EventRepeater.pdb

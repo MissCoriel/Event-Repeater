@@ -1,0 +1,17 @@
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.CoreCompileInputs.cache
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.dll
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\obj\Debug\EventRepeater.pdb
+C:\Users\missc\source\repos\EventRepeater\EventRepeater\bin\Debug\config.json
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\Readme.txt
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\manifest.json
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\Newtonsoft.Json.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\bin\Debug\Newtonsoft.Json.xml
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.CoreCompileInputs.cache
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.CopyComplete
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.dll
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.pdb
+E:\Stardew Vally Modding\EventRepeater\EventRepeater\obj\Debug\EventRepeater.csproj.AssemblyReference.cache
