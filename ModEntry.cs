@@ -5,8 +5,11 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using System.Linq;
+using System.Reflection;
 using EventRepeater.Integrations;
 using EventRepeater.Framework;
+using StardewModdingAPI.Utilities;
+using Netcode;
 
 namespace EventRepeater
 {
@@ -17,22 +20,25 @@ namespace EventRepeater
         ** Fields
         *********/
         /// <summary>The event IDs to forget.</summary>
-        private HashSet<int> EventsToForget = new HashSet<int>();
-        private HashSet<string> MailToForget = new HashSet<string>();
-        private HashSet<int> ResponseToForget = new HashSet<int>();
+        private HashSet<string> EventsToForget = new();
+        private HashSet<string> MailToForget = new();
+        private HashSet<string> ResponseToForget = new();
         private Event? LastEvent;
-        private List<int> ManualRepeaterList = new List<int>();
-        private bool ShowEventIDs = false;
-        private int LastPlayed;
+        private List<string> ManualRepeaterList = new();
+        private bool ShowEventIDs;
+        private string? LastPlayed;
         private ConfigModel Config = null!; //Menu Button
-        int EventRemovalTimer = -1;
-        int eventtoskip; //uses Game1.CurrentEvent.id to acquire the ID
-        int mailIDCount; //used to monitor mail ID
-        int responseCount; //used to monitor responses
-        HashSet<string> OldFlags = new HashSet<string>();
-        HashSet<int> responseMon = new HashSet<int>();
-        public bool CheckMailBox = true;
-        public string[]? MailboxContent;
+        private int EventRemovalTimer;
+        private string? eventtoskip; //uses Game1.CurrentEvent.id to acquire the ID
+        private readonly PerScreen<int> mailIDCount;
+        private readonly PerScreen<int> responseCount;
+        private readonly PerScreen<HashSet<string>> OldFlags;
+        private readonly PerScreen<HashSet<string>> responseMon;
+        private bool CheckMailBox;
+        private readonly PerScreen<string[]?> MailboxContent;
+        public bool DebuggerMode;
+
+
         /*********
         ** Public methods
         *********/
@@ -45,7 +51,7 @@ namespace EventRepeater
             helper.Events.GameLoop.UpdateTicked += this.UpdateTicked;
             helper.Events.Input.ButtonReleased += this.OnButtonReleased;
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
-            
+
             this.Config = helper.ReadConfig<ConfigModel>();
 
             AssetManager.Initialize(helper.GameContent, this.Monitor);
@@ -67,7 +73,8 @@ namespace EventRepeater
             helper.ConsoleCommands.Add("stopevent", "'usage: stops current event.", StopEventCommand);
             helper.ConsoleCommands.Add("showinfo", "Toggles in game visuals of certain alerts.", ShowInfoCommand);
             helper.ConsoleCommands.Add("emergencyskip", "Forces an event skip.. will progress the game", EmergencySkipCommand);
-            helper.ConsoleCommands.Add("fastmail", "`usage: fastmail <mailID>` Send mail instantly to your Mailbox", FastMailCommand);
+            helper.ConsoleCommands.Add("fastmail", "`usage: fastmail <mailID>` Send mail instantly to your Mailbox", new Action<string, string[]>(this.FastMailCommand));
+            helper.ConsoleCommands.Add("toggledebug", "Toggles Mail Monitor, Response Monitor, and Mailbox Monitor.  Use in splitscreen not recommended!", new Action<string, string[]>(this.DebuggerCommand));
         }
 
         /// <summary>
@@ -78,18 +85,17 @@ namespace EventRepeater
         /// <exception cref="InvalidDataException">The mod we tried to grab from is not a CP mod.</exception>
         private void OnLaunched(object? sender, GameLaunchedEventArgs e)
         {
-           
             GMCMHelper gmcm = new(this.Monitor, this.Helper.Translation, this.Helper.ModRegistry, this.ModManifest);
+
             if (gmcm.TryGetAPI())
             {
                 gmcm.Register(
                     () => Config = new(),
-                    () => this.Helper.WriteConfig(Config));
+                    () => this.Helper.WriteConfig(Config)
+                );
 
-                foreach (var property in typeof(ConfigModel).GetProperties())
-                {
+                foreach (PropertyInfo property in typeof(ConfigModel).GetProperties())
                     gmcm.AddKeybindList(property, () => Config);
-                }
             }
 
             foreach (IModInfo mod in this.Helper.ModRegistry.GetAll())
@@ -113,38 +119,35 @@ namespace EventRepeater
                     throw new InvalidDataException($"Couldn't grab mod from modinfo {mod.Manifest}");
 
                 // read the JSON file
-                if (modimpl.ReadJsonFile<ThingsToForget>("content.json") is not ThingsToForget model)
+                if (modimpl.ReadJsonFile<ThingsToForget>("content.json") is not {} model)
                     continue;
-                //Check for Dependency
-                //For now.. leave a warning!!
-               /* if (!modimpl.Manifest.Dependencies.Any((dep) => dep.UniqueID.AsSpan().Trim().Equals("misscoriel.eventrepeater", StringComparison.OrdinalIgnoreCase)))
-                    continue;*/
-                bool loaded = false;
+
                 // extract event IDs
+                bool flag = false;
                 if (model.RepeatEvents?.Count is > 0)
                 {
                     this.EventsToForget.UnionWith(model.RepeatEvents);
-                    this.Monitor.Log($"Loading {model.RepeatEvents.Count} forgettable events for {mod.Manifest.UniqueID}", LogLevel.Trace);
-                    loaded = true;
+                    this.Monitor.Log($"Loading {model.RepeatEvents.Count} forgettable events for {mod.Manifest.UniqueID}");
+                    flag = true;
                 }
                 if (model.RepeatMail?.Count is > 0)
                 {
                     this.MailToForget.UnionWith(model.RepeatMail);
-                    this.Monitor.Log($"Loading {model.RepeatMail.Count} forgettable mail for {mod.Manifest.UniqueID}", LogLevel.Trace);
-                    loaded = true;
+                    this.Monitor.Log($"Loading {model.RepeatMail.Count} forgettable mail for {mod.Manifest.UniqueID}");
+                    flag = true;
                 }
                 if (model.RepeatResponse?.Count is > 0)
                 {
                     this.ResponseToForget.UnionWith(model.RepeatResponse);
-                    this.Monitor.Log($"Loading{model.RepeatResponse.Count} forgettable mail for {mod.Manifest.UniqueID}", LogLevel.Trace);
-                    loaded = true;
+                    this.Monitor.Log($"Loading {model.RepeatResponse.Count} forgettable mail for {mod.Manifest.UniqueID}");
+                    flag = true;
                 }
-                if (loaded && !modimpl.Manifest.Dependencies.Any((dep) => dep.UniqueID.AsSpan().Trim().Equals("misscoriel.eventrepeater", StringComparison.OrdinalIgnoreCase)))
-                {
-                    Monitor.Log($"{modimpl.Manifest.Name} uses Event Repeater features, but doesn't list it as a dependency in its manifest.json. This will stop working in future versions.", LogLevel.Warn);
-                }
+
+                if (flag && !modimpl.Manifest.Dependencies.Any(dep => dep.UniqueID.AsSpan().Trim().Equals("misscoriel.eventrepeater", StringComparison.OrdinalIgnoreCase)))
+                    this.Monitor.Log(modimpl.Manifest.Name + " uses Event Repeater features, but doesn't list it as a dependency in its manifest.json. This will stop working in future versions.", (LogLevel)3);
+
             }
-            this.Monitor.Log($"Loaded a grand total of\n\t{this.EventsToForget.Count} events\n\t{this.MailToForget.Count} mail\n\t{this.ResponseToForget.Count} responses.", LogLevel.Debug);
+            this.Monitor.Log($"Loaded a grand total of\n\t{this.EventsToForget.Count} events\n\t{this.MailToForget.Count} mail\n\t{this.ResponseToForget.Count} responses.");
         }
 
         /*********
@@ -156,38 +159,39 @@ namespace EventRepeater
         /// 
         private void UpdateTicked(object? sender, UpdateTickedEventArgs e)
         {
-            if (Game1.mailbox.Count > 0)
-                MailboxMonitor();
-            if (Game1.mailbox.Count == 0)
-                CheckMailBox = true;
-            if (MailboxContent != null && MailboxContent.Length != Game1.mailbox.Count)
-                CheckMailBox = true;
-            if(mailIDCount != Game1.player.mailReceived.Count)
+            if (this.DebuggerMode)
             {
-                if (mailIDCount == 0)
+                if (Game1.mailbox.Count > 0)
+                    this.MailboxMonitor();
+                if (Game1.mailbox.Count == 0)
+                    this.CheckMailBox = true;
+                if (this.MailboxContent.Value != null && this.MailboxContent.Value.Length != Game1.mailbox.Count)
+                    this.CheckMailBox = true;
+                if (this.mailIDCount.Value != ((NetHashSet<string>)Game1.player.mailReceived).Count)
                 {
-                    OldFlags = new HashSet<string>(Game1.player.mailReceived);
-                    mailIDCount = Game1.player.mailReceived.Count;
-                    return;
-                }                    
-                else
-                    MailIDMonitor();
-            }
-            if(responseCount != Game1.player.mailReceived.Count)
-            {
-                if (responseCount == 0)
-                {
-                    responseMon = new HashSet<int>(Game1.player.dialogueQuestionsAnswered);
-                    responseCount = Game1.player.dialogueQuestionsAnswered.Count;
-                    return;
+                    if (this.mailIDCount.Value == 0)
+                    {
+                        this.OldFlags.Value = new HashSet<string>(Game1.player.mailReceived);
+                        this.mailIDCount.Value = Game1.player.mailReceived.Count;
+                        return;
+                    }
+                    this.MailIDMonitor();
                 }
-                else
-                    ResponseMonitor();
+                if (this.responseCount.Value != ((NetHashSet<string>)Game1.player.mailReceived).Count)
+                {
+                    if (this.responseCount.Value == 0)
+                    {
+                        this.responseMon.Value = new HashSet<string>(Game1.player.dialogueQuestionsAnswered);
+                        this.responseCount.Value = Game1.player.dialogueQuestionsAnswered.Count;
+                        return;
+                    }
+                    this.ResponseMonitor();
+                }
             }
+
             if (this.LastEvent is null && Game1.CurrentEvent is not null)
                 this.OnEventStarted(Game1.CurrentEvent);
-            
-            this.LastEvent = Game1.CurrentEvent;
+
             if (this.EventRemovalTimer > 0)
             {
                 this.EventRemovalTimer--;
@@ -199,42 +203,38 @@ namespace EventRepeater
                 }
             }
         }
+
         public void OnButtonReleased(object? sender, ButtonReleasedEventArgs e)
         {
-           /* if(e.Button == this.Config.EventWindow)
-            {
-                if (Game1.activeClickableMenu == null)
-                    Game1.activeClickableMenu = new EventRepeaterWindow(this.Helper.Data, this.Helper.DirectoryPath);
-            }*/
+            /* if(e.Button == this.Config.EventWindow)
+             {
+                 if (Game1.activeClickableMenu == null)
+                     Game1.activeClickableMenu = new EventRepeaterWindow(this.Helper.Data, this.Helper.DirectoryPath);
+             }*/
         }
 
         public void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
         {
             if (this.Config.ShowInfo.JustPressed())
-            {
                 ShowInfoCommand(null, null);
-            }
 
             if (Game1.CurrentEvent is null)
                 return;
 
 
             if (this.Config.NormalSkip.JustPressed())
-            {
                 EmergencySkipCommand(null, null);
-            }
+
             if (this.Config.EmergencySkip.JustPressed())
-            {
                 StopEventCommand(null, null);
-            }
         }
 
         private void OnEventStarted(Event @event)
         {
             Monitor.Log($"Current Event: {Game1.CurrentEvent.id}", LogLevel.Debug);
             LastPlayed = Game1.CurrentEvent.id;
-            
-            if(ShowEventIDs == true)
+
+            if (ShowEventIDs)
             {
                 Game1.addHUDMessage(new HUDMessage($"Current Event: {Game1.CurrentEvent.id}!"));
             }
@@ -259,10 +259,7 @@ namespace EventRepeater
                 switch (commandName)
                 {
                     case "forgetEvent":
-                        if (int.TryParse(rawId, out int eventID))
-                            Game1.player.eventsSeen.Remove(eventID);
-                        else
-                            this.Monitor.Log($"Could not parse event ID '{rawId}' for {commandName} command.", LogLevel.Warn);
+                        Game1.player.eventsSeen.Remove(rawId);
                         break;
 
                     case "forgetMail":
@@ -270,14 +267,9 @@ namespace EventRepeater
                         break;
 
                     case "forgetResponse":
-                        if (int.TryParse(rawId, out int responseID))
-                        {
-                            Game1.player.dialogueQuestionsAnswered.Remove(responseID);
-                            //this.Monitor.Log($"Removed {responseID}", LogLevel.Debug);
-                        }
-                        else
-                            this.Monitor.Log($"Could not parse response ID '{rawId}' for {commandName} command.", LogLevel.Warn);
+                        Game1.player.dialogueQuestionsAnswered.Remove(rawId);
                         break;
+
                     case "timeAdvance":
                         if (int.TryParse(rawId, out int hours))
                         {
@@ -291,13 +283,15 @@ namespace EventRepeater
                         }
                         else
                             this.Monitor.Log($"Time advancement failed: invalid number '{rawId}'.", LogLevel.Warn);
-                        break;                       
+                        break;
+
                     default:
                         this.Monitor.Log($"Unrecognized command name '{commandName}'.", LogLevel.Warn);
                         break;
                 }
             }
         }
+
         private string[] ExtractCommands(string[] commands, string[] commandNamesToExtract, out ISet<string> extractedCommands)
         {
             var otherCommands = new List<string>(commands.Length);
@@ -317,91 +311,81 @@ namespace EventRepeater
         [EventPriority(EventPriority.High + 1000)]
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
-            
-
             bool removed = false;
-            mailIDCount = Game1.player.mailReceived.Count;
+            this.mailIDCount.Value = Game1.player.mailReceived.Count;
+
             if (this.EventsToForget.Count > 0 || this.ManualRepeaterList.Count > 0 || AssetManager.EventsToForget.Value.Count > 0)
             {
-                for (int i = Game1.player.eventsSeen.Count - 1; i >= 0; i--)
+                removed = Game1.player.eventsSeen.RemoveWhere(id =>
                 {
-                    var evt = Game1.player.eventsSeen[i];
-                    if (this.EventsToForget.Contains(evt) || AssetManager.EventsToForget.Value.Contains(evt))
+                    if (this.EventsToForget.Contains(id) /*|| AssetManager.EventsToForget.Value.Contains(id)*/)
                     {
-                        this.Monitor.Log("Repeatable Event Found! Resetting for next time! Event ID: " + evt);
-                        Game1.player.eventsSeen.RemoveAt(i);
-                        removed = true;
+                        this.Monitor.Log("Repeatable Event Found! Resetting for next time! Event ID: " + id);
+                        return true;
                     }
-                    else if (this.ManualRepeaterList.Contains(evt))
-                    {
-                        this.Monitor.Log("Manual Repeater Engaged! Resetting: " + evt);
-                        Game1.player.eventsSeen.RemoveAt(i);
-                        removed = true;
-                    }
-                }
+
+                    //if (this.ManualRepeaterList.Contains(id))
+                    //{
+                    //    this.Monitor.Log("Manual Repeater Engaged! Resetting: " + id);
+                    //    return true;
+                    //}
+
+                    return false;
+                }) > 0;
             }
+
             if (!removed)
-            {
                 this.Monitor.Log("No repeatable events were removed");
-            }
 
             var assetMail = Game1.content.Load<Dictionary<string, string>>(AssetManager.MailToRepeatName);
 
             removed = false;
             if (this.MailToForget.Count > 0 || assetMail.Count > 0)
             {
-                for (int i = Game1.player.mailReceived.Count - 1; i >= 0; i--)
+                removed = Game1.player.mailReceived.RemoveWhere(id =>
                 {
-                    var msg = Game1.player.mailReceived[i];
-                    if (this.MailToForget.Contains(msg) || assetMail.ContainsKey(msg))
+                    if (this.MailToForget.Contains(id) || assetMail.ContainsKey(id))
                     {
-                        this.Monitor.Log("Repeatable Mail found!  Resetting: " + msg);
-                        Game1.player.mailReceived.RemoveAt(i);
-                        removed = true;
+                        this.Monitor.Log("Repeatable Mail found!  Resetting: " + id);
+                        return true;
                     }
-                }
+
+                    return false;
+                }) > 0;
             }
             if (!removed)
-            {
                 this.Monitor.Log("No repeatable mail found for removal.");
-            }
 
             removed = false;
             if (this.ResponseToForget.Count > 0 || AssetManager.ResponseToForget.Value.Count > 0)
             {
-                for (int i = Game1.player.dialogueQuestionsAnswered.Count - 1; i >= 0; i--)
+                removed = Game1.player.dialogueQuestionsAnswered.RemoveWhere(id =>
                 {
-                    var response = Game1.player.dialogueQuestionsAnswered[i];
-                    if (this.ResponseToForget.Contains(response) || AssetManager.ResponseToForget.Value.Contains(response))
+                    if (this.ResponseToForget.Contains(id) || AssetManager.ResponseToForget.Value.Contains(id))
                     {
-                        Game1.player.dialogueQuestionsAnswered.RemoveAt(i);
-                        this.Monitor.Log("Repeatable Response Found! Resetting: " + response);
-                        removed = true;
+                        this.Monitor.Log("Repeatable Response Found! Resetting: " + id);
+                        return true;
                     }
-                }
+
+                    return false;
+                }) > 0;
             }
             if (!removed)
-            {
                 this.Monitor.Log("No repeatable responses found.");
-            }
         }
 
         private void ManualRepeater(string command, string[] parameters)
         {
             //This command will set a manual repeat to a list and save the event IDs to a file in the SDV folder.  
             //The first thing to do is create a list
-            List<int> eventsSeenList = new List<int>();
-            //Populate that list with Game1.eventseen
-            foreach(int eventID in Game1.player.eventsSeen)
-            {
-                eventsSeenList.Add(eventID);
-            }
+            List<string> eventsSeenList = new List<string>(Game1.player.eventsSeen);
+
             //Check to see if an EventID was added in the command.. If not, then add the last ID on the list
             if (parameters.Length == 0)
             {
                 try
                 {
-                    int lastEvent = eventsSeenList[eventsSeenList.Count - 1];//Count -1 to account for 0
+                    string lastEvent = eventsSeenList[eventsSeenList.Count - 1];//Count -1 to account for 0
                     Game1.player.eventsSeen.Remove(lastEvent);//Removes ID from events seen
                     ManualRepeaterList.Add(lastEvent);//Adds to the Manual List
                     Monitor.Log($"{lastEvent} has been added to Manual Repeater", LogLevel.Debug);
@@ -415,43 +399,39 @@ namespace EventRepeater
             {
                 try
                 {
-                    //convert parameters to int
-                    int parseParameter = Int32.Parse(parameters[0]);
-                    ManualRepeaterList.Add(parseParameter);
-                    Game1.player.eventsSeen.Remove(parseParameter);
-                    Monitor.Log($"{parseParameter} has been added to Manual Repeater", LogLevel.Debug);
+                    ManualRepeaterList.Add(parameters[0]);
+                    Game1.player.eventsSeen.Remove(parameters[0]);
+                    Monitor.Log($"{parameters[0]} has been added to Manual Repeater", LogLevel.Debug);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Monitor.Log(ex.Message, LogLevel.Warn);
                 }
             }
-
         }
 
         private void ShowInfoCommand(string? command, string[]? parameters)
         {
-            if (ShowEventIDs == true)
+            if (ShowEventIDs)
             {
                 ShowEventIDs = false;
                 Game1.addHUDMessage(new HUDMessage("In Game Alerts Disabled!"));
-                return;
             }
-            if (ShowEventIDs == false)
+            else
             {
                 ShowEventIDs = true;
                 Game1.addHUDMessage(new HUDMessage("In Game Alerts Enabled!"));
-                return;
             }
         }
+
         private void FastMailCommand(string command, string[] parameters)
         {
             if (parameters[0] != null)
                 Game1.addMail(parameters[0]);
-            else if (parameters[0] == null)
-                Monitor.Log("No Mail ID was added!", LogLevel.Error);
-
+            else
+                this.Monitor.Log("No Mail ID was added!", (LogLevel)4);
         }
+
         private void EmergencySkipCommand(string? command, string[]? parameters)
         {
             if (Game1.CurrentEvent is null)
@@ -461,19 +441,21 @@ namespace EventRepeater
 
             try
             {
-                                
                 Game1.CurrentEvent.skipEvent();
                 Monitor.Log($"Event {eventtoskip} was successfully skipped!", LogLevel.Debug);
-                if (ShowEventIDs == true)
-                {
+                if (ShowEventIDs)
                     Game1.addHUDMessage(new HUDMessage($"Event {eventtoskip} was successfully skipped!"));
-                }
 
             }
             catch (Exception ex)
             {
                 Monitor.Log(ex.Message, LogLevel.Error);
             }
+        }
+
+        private void DebuggerCommand(string? command, string[]? parameters)
+        {
+            this.DebuggerMode = !this.DebuggerMode;
         }
 
         private void StopEventCommand(string? command, string[]? parameters)
@@ -485,21 +467,20 @@ namespace EventRepeater
             EventRemovalTimer = 120;
             try
             {
-                
-                string[] currentEventCommandList = Game1.CurrentEvent.eventCommands;
+                string[] eventCommands = Game1.CurrentEvent.eventCommands;
                 int stoppedCommand = Game1.CurrentEvent.currentCommand;
-                Monitor.Log($"Emergency skip was engaged! Event Broke at this command: {currentEventCommandList[stoppedCommand]}", LogLevel.Error);
-                currentEventCommandList[stoppedCommand] = currentEventCommandList[stoppedCommand] + " <=== Event was stopped here!!";
+                Monitor.Log($"Emergency skip was engaged! Event Broke at this command: {eventCommands[stoppedCommand]}", LogLevel.Error);
+                eventCommands[stoppedCommand] = eventCommands[stoppedCommand] + " <=== Event was stopped here!!";
 
                 Game1.CurrentEvent.exitEvent();
                 Game1.warpFarmer("FarmHouse", 0, 0, false);
                 Monitor.Log($"The Event {eventtoskip} has been interrupted. A dump of the Event is in the SDV folder.");
-                if (ShowEventIDs == true)
+                if (ShowEventIDs)
                 {
                     Game1.addHUDMessage(new HUDMessage($"The Event {eventtoskip} has been interrupted.  A dump of the Event is in the SDV folder."));
                 }
-                File.WriteAllLines(Path.Combine(Environment.CurrentDirectory, $"EventDump{eventtoskip}.txt"), currentEventCommandList);
-                
+                File.WriteAllLines(Path.Combine(Environment.CurrentDirectory, $"EventDump{eventtoskip}.txt"), eventCommands);
+
 
 
             }
@@ -515,13 +496,7 @@ namespace EventRepeater
             //Create Directory
             Directory.CreateDirectory(Environment.CurrentDirectory + "\\ManualRepeaterFiles");
             string savePath = Environment.CurrentDirectory + "\\ManualRepeaterFiles\\" + parameters[0] + ".txt"; //Saves file in the name you designate
-            string[] parse = new string[ManualRepeaterList.Count];
-            int i = 0; //start at beginning of manual list
-            foreach(var item in ManualRepeaterList)//Converts the Manual list to a string array
-            {
-                parse[i] = item.ToString();
-                i++;
-            }
+            string[] parse = ManualRepeaterList.ToArray(); //Converts the Manual list to a string array
             File.WriteAllLines(savePath, parse);
             Monitor.Log($"Saved file to {savePath}", LogLevel.Debug);
         }
@@ -530,18 +505,18 @@ namespace EventRepeater
         {
             //This will allow you to load a saved manual repeater file
             //First Check to see if you have the Directory
-            if(Directory.Exists(Environment.CurrentDirectory + "\\ManualRepeaterFiles"))
+            if (Directory.Exists(Environment.CurrentDirectory + "\\ManualRepeaterFiles"))
             {
                 string loadPath = Environment.CurrentDirectory + "\\ManualRepeaterFiles\\" + parameters[0] + ".txt"; //loads the filename you choose
+                
                 //Save all strings to a List
-                List<string> FileIDs = new List<string>();
-                FileIDs.AddRange(File.ReadAllLines(loadPath));
+                List<string> fileIds = new List<string>(File.ReadAllLines(loadPath));
+
                 //Transfer all items to ManualList and convert to int
-                foreach(string eventID in FileIDs)
+                foreach (string eventId in fileIds)
                 {
-                    int parse = Int32.Parse(eventID);
-                    ManualRepeaterList.Add(parse);
-                    Game1.player.eventsSeen.Remove(parse);
+                    ManualRepeaterList.Add(eventId);
+                    Game1.player.eventsSeen.Remove(eventId);
                 }
                 Monitor.Log($"{parameters[0]} loaded!", LogLevel.Debug);
             }
@@ -549,210 +524,182 @@ namespace EventRepeater
 
         private void ForgetManualCommand(string command, string[] parameters)
         {
-            if (parameters.Length == 0) return;
+            if (parameters.Length == 0)
+                return;
+
             try
             {
-                if(parameters[0] == "last")
+                switch (parameters[0])
                 {
-                    if (LastPlayed == 0)
-                    {
-                        Monitor.Log("There is no previously played event.  Did you restart your game?", LogLevel.Error);
-                        return;
-                    }
-                    else
-                    {
-                        Game1.player.eventsSeen.Remove(LastPlayed);
-                        Monitor.Log($"Last played event, {LastPlayed}, was removed!", LogLevel.Debug);
-                        if (ShowEventIDs == true)
+                    case "last":
+                        if (string.IsNullOrEmpty(this.LastPlayed))
                         {
-                            Game1.addHUDMessage(new HUDMessage($"Last played event, {LastPlayed}, was removed!"));
+                            Monitor.Log("There is no previously played event.  Did you restart your game?", LogLevel.Error);
+                            return;
                         }
 
-                    }
+                        Game1.player.eventsSeen.Remove(LastPlayed);
+                        Monitor.Log($"Last played event, {LastPlayed}, was removed!", LogLevel.Debug);
+                        if (ShowEventIDs)
+                            Game1.addHUDMessage(new HUDMessage($"Last played event, {LastPlayed}, was removed!"));
+                        break;
 
-                }
-                if (parameters[0] == "all")
-                {
-                    Game1.player.eventsSeen.Clear();
-                    Game1.player.eventsSeen.Add(60367);
-                    Monitor.Log("All events removed! (Except the initial event)", LogLevel.Debug);
-                    if (ShowEventIDs == true)
-                    {
-                        Game1.addHUDMessage(new HUDMessage("All events removed! (except the initial event)"));
-                    }
-                }
-                else
-                {
-                    int eventToForget = int.Parse(parameters[0]);
-                    Game1.player.eventsSeen.Remove(eventToForget);
-                    Monitor.Log("Forgetting event id: " + eventToForget, LogLevel.Debug);
-                    if(ShowEventIDs == true)
-                    {
-                        Game1.addHUDMessage(new HUDMessage($"Forgetting event id: {eventToForget}"));
-                    }
-                }
+                    case "all":
+                        Game1.player.eventsSeen.Clear();
+                        Game1.player.eventsSeen.Add("60367");
+                        Monitor.Log("All events removed! (Except the initial event)", LogLevel.Debug);
+                        if (ShowEventIDs)
+                            Game1.addHUDMessage(new HUDMessage("All events removed! (except the initial event)"));
+                        break;
 
+                    default:
+                        Game1.player.eventsSeen.Remove(parameters[0]);
+                        Monitor.Log("Forgetting event id: " + parameters[0], LogLevel.Debug);
+                        if (ShowEventIDs)
+                            Game1.addHUDMessage(new HUDMessage($"Forgetting event id: {parameters[0]}"));
+                        break;
+                }
             }
             catch (Exception ex)
             {
                 Monitor.Log(ex.Message, LogLevel.Error);
             }
         }
+
         private void ShowEventsCommand(string command, string[] parameters)
         {
-            string eventsSeen = "Events seen: ";
-            foreach (var e in Game1.player.eventsSeen)
-            {
-                eventsSeen += e + ", ";
-            }
+            string eventsSeen = "Events seen: " + string.Join(", ", Game1.player.eventsSeen);
             Monitor.Log(eventsSeen, LogLevel.Debug);
         }
+
         private void ShowMailCommand(string command, string[] parameters)
         {
-            string mailSeen = "Mail Seen: ";
-            foreach (var e in Game1.player.mailReceived)
-            {
-                mailSeen += e + ", ";
-            }
+            string mailSeen = "Mail Seen: " + string.Join(", ", Game1.player.mailReceived);
             Monitor.Log(mailSeen, LogLevel.Debug);
         }
+
         private void ForgetMailCommand(string command, string[] parameters)
         {
-            if (parameters.Length == 0) return;
+            if (parameters.Length == 0)
+                return;
+
             try
             {
-                string MailToForget = parameters[0];
-                Game1.player.mailReceived.Remove(MailToForget);
-                OldFlags = new HashSet<string>(Game1.player.mailReceived);
-                Monitor.Log("Forgetting mail id: " + MailToForget, LogLevel.Debug);
-                if (ShowEventIDs == true)
-                {
-                    Game1.addHUDMessage(new HUDMessage($"Forgetting mail id: {MailToForget}"));
-                }
+                string mailToForget = parameters[0];
+                Game1.player.mailReceived.Remove(mailToForget);
+                this.OldFlags.Value = new HashSet<string>(Game1.player.mailReceived);
+                Monitor.Log("Forgetting mail id: " + mailToForget, LogLevel.Debug);
+                if (ShowEventIDs)
+                    Game1.addHUDMessage(new HUDMessage($"Forgetting mail id: {mailToForget}"));
 
             }
             catch (Exception) { }
         }
+
         private void SendMailCommand(string command, string[] parameters)
         {
-            if (parameters.Length == 0) return;
+            if (parameters.Length == 0)
+                return;
+
             try
             {
-                string MailtoSend = parameters[0];
-                Game1.addMailForTomorrow(MailtoSend);
-                Monitor.Log("Check Mail Tomorrow!! Sending: " + MailtoSend, LogLevel.Debug);
-                if (ShowEventIDs == true)
-                {
-                    Game1.addHUDMessage(new HUDMessage($"Check Mail Tomorrow!! Sending: {MailtoSend}"));
-                }
+                string mailtoSend = parameters[0];
+                Game1.addMailForTomorrow(mailtoSend);
+                Monitor.Log("Check Mail Tomorrow!! Sending: " + mailtoSend, LogLevel.Debug);
+                if (ShowEventIDs)
+                    Game1.addHUDMessage(new HUDMessage($"Check Mail Tomorrow!! Sending: {mailtoSend}"));
 
             }
             catch (Exception) { }
         }
+
         private void ShowResponseCommand(string command, string[] parameters)
         {
-            string dialogueQuestionsAnswered = "Response IDs: ";
-            foreach (var e in Game1.player.dialogueQuestionsAnswered)
-            {
-                dialogueQuestionsAnswered += e + ", ";
-            }
+            string dialogueQuestionsAnswered = "Response IDs: " + string.Join(", ", Game1.player.dialogueQuestionsAnswered);
             Monitor.Log(dialogueQuestionsAnswered, LogLevel.Debug);
         }
+
         private void ForgetResponseCommand(string command, string[] parameters)
         {
-            if (parameters.Length == 0) return;
+            if (parameters.Length == 0)
+                return;
+
             try
             {
-                int responseToForget = int.Parse(parameters[0]);
-                Game1.player.dialogueQuestionsAnswered.Remove(responseToForget);
-                responseMon = new HashSet<int>(Game1.player.dialogueQuestionsAnswered);
-                Monitor.Log("Forgetting Response ID: " + responseToForget, LogLevel.Debug);
-                if (ShowEventIDs == true)
-                {
-                    Game1.addHUDMessage(new HUDMessage($"Forgetting Response ID: {responseToForget}"));
-                }
+                Game1.player.dialogueQuestionsAnswered.Remove(parameters[0]);
+                this.responseMon.Value = new HashSet<string>(Game1.player.dialogueQuestionsAnswered);
+                Monitor.Log("Forgetting Response ID: " + parameters[0], LogLevel.Debug);
+                if (ShowEventIDs)
+                    Game1.addHUDMessage(new HUDMessage($"Forgetting Response ID: {parameters[0]}"));
 
             }
             catch (Exception) { }
         }
 
-        void ResponseMonitor()
+        private void ResponseMonitor()
         {
-            if (this.responseMon == null || this.responseMon.Count != Game1.player.dialogueQuestionsAnswered.Count)
+            if (this.responseMon.Value != null && this.responseMon.Value.Count == Game1.player.dialogueQuestionsAnswered.Count)
+                return;
+            HashSet<string> stringSet = new HashSet<string>(Game1.player.dialogueQuestionsAnswered);
+            if (this.responseMon.Value != null)
             {
-                HashSet<int> updatedResponse = new HashSet<int>(Game1.player.dialogueQuestionsAnswered);
-                if (responseMon != null)
+                foreach (string str in this.responseMon.Value)
                 {
-                    foreach (int oldResponse in this.responseMon)
-                    {
-                        if (!updatedResponse.Contains(oldResponse))
-                            this.Monitor.Log($"Response ID {oldResponse} has been removed from dialogueQuestionsAnswered!", LogLevel.Debug);
-                    }
-                    foreach (int newResponse in updatedResponse)
-                    {
-                        if (!this.responseMon.Contains(newResponse))
-                            this.Monitor.Log($"Response ID {newResponse} was added to dialogueQuestionsAnswered!", LogLevel.Debug);
-                    }
+                    if (!stringSet.Contains(str))
+                        this.Monitor.Log("Response ID " + str + " has been removed from dialogueQuestionsAnswered!", (LogLevel)1);
                 }
-                this.responseMon = updatedResponse;
+                foreach (string str in stringSet)
+                {
+                    if (!this.responseMon.Value.Contains(str))
+                        this.Monitor.Log("Response ID " + str + " was added to dialogueQuestionsAnswered!", (LogLevel)1);
+                }
             }
+            this.responseMon.Value = stringSet;
         }
-        void MailboxMonitor()
+
+        private void MailboxMonitor()
         {
-           
-            if (Game1.mailbox.Count >= 0 && CheckMailBox == true)
-            {
-                MailboxContent = Game1.mailbox.ToArray();
-                string ListofMail = "You have the following Mail waiting in your Mailbox: ";
-                foreach(string Mail in MailboxContent)
-                {
-                    ListofMail += Mail + ", ";
-                }
-                this.Monitor.Log(ListofMail, LogLevel.Debug);
-                if (ShowEventIDs == true)
-                {
-                    Game1.addHUDMessage(new HUDMessage(ListofMail));
-                }
+            if (Game1.mailbox.Count < 0 || !this.CheckMailBox)
+                return;
 
-                CheckMailBox = false;
-            }
+            this.MailboxContent.Value = Game1.mailbox.ToArray();
+            string text = "You have the following Mail waiting in your Mailbox: " + string.Join(", ", this.MailboxContent.Value);
+            this.Monitor.Log(text, LogLevel.Debug);
+            if (this.ShowEventIDs)
+                Game1.addHUDMessage(new HUDMessage(text));
+            this.CheckMailBox = false;
         }
-        void MailIDMonitor()
+
+        private void MailIDMonitor()
         {
-
-            if (this.OldFlags == null || this.OldFlags.Count != Game1.player.mailReceived.Count)
+            if (this.OldFlags.Value != null && this.OldFlags.Value.Count == Game1.player.mailReceived.Count)
+                return;
+            HashSet<string> stringSet = new HashSet<string>(Game1.player.mailReceived);
+            if (this.OldFlags.Value != null)
             {
-
-                // get new values
-                HashSet<string> newValues = new(Game1.player.mailReceived);
-
-                // detect changes (unless this is the first iteration)
-                if (this.OldFlags != null)
+                foreach (string str in this.OldFlags.Value)
                 {
-                    foreach (string oldFlag in this.OldFlags)
-                    {
-                        if (!newValues.Contains(oldFlag))
-                            this.Monitor.Log($"Mail ID {oldFlag} was removed from mailRecieved", LogLevel.Debug);
-                    }
-
-                    foreach (string newFlag in newValues)
-                    {
-                        if (!this.OldFlags.Contains(newFlag))
-                            this.Monitor.Log($"Mail ID {newFlag} was added to mailRecieved", LogLevel.Debug);
-                    }
+                    if (!stringSet.Contains(str))
+                        this.Monitor.Log("Mail ID " + str + " was removed from mailRecieved", (LogLevel)1);
                 }
-
-                // save for next check
-                this.OldFlags = newValues;
+                foreach (string str in stringSet)
+                {
+                    if (!this.OldFlags.Value.Contains(str))
+                        this.Monitor.Log("Mail ID " + str + " was added to mailRecieved", (LogLevel)1);
+                }
             }
+            this.OldFlags.Value = stringSet;
         }
+
         private void injectCommand(string command, string[] parameters)
         {
-            ///This will replace ResponseAdd in order to inject a more versitile code
-            ///function: inject <type> <ID> whereas type is event, response, mail
-            ///this will not have an indicator of existing events, however will look for the ID in the appropriate list.
-            ///
-            if (parameters.Length == 0) return;
+            // This will replace ResponseAdd in order to inject a more versitile code
+            // function: inject <type> <ID> whereas type is event, response, mail
+            // this will not have an indicator of existing events, however will look for the ID in the appropriate list.
+            // 
+            if (parameters.Length == 0)
+                return;
+
             if (parameters.Length == 1)
             {
                 if (parameters[0] == "response")
@@ -771,59 +718,45 @@ namespace EventRepeater
             if (parameters.Length == 2)
             {
                 //check for existing IDs
-                if (parameters[0] == "event")
+                switch (parameters[0])
                 {
-                    int parameterParse = int.Parse(parameters[1]);
-                    if(Game1.player.eventsSeen.Contains(parameterParse))
-                    {
-                        Monitor.Log($"{parameters[1]} Already exists within seen events.", LogLevel.Warn);
-                        return;
-                    }
-                    else
-                    {
-                        Game1.player.eventsSeen.Add(parameterParse);
-                        Monitor.Log($"{parameters[1]} has been added to the seen events list.", LogLevel.Debug);
-                        return;
-                    }
+                    case "event":
+                        if (Game1.player.eventsSeen.Contains(parameters[1]))
+                        {
+                            Monitor.Log($"{parameters[1]} Already exists within seen events.", LogLevel.Warn);
+                        }
+                        else
+                        {
+                            Game1.player.eventsSeen.Add(parameters[1]);
+                            Monitor.Log($"{parameters[1]} has been added to the seen events list.", LogLevel.Debug);
+                        }
+                        break;
+
+                    case "response":
+                        if (Game1.player.dialogueQuestionsAnswered.Contains(parameters[1]))
+                        {
+                            Monitor.Log($"{parameters[1]} Already exists within the response list.", LogLevel.Warn);
+                        }
+                        else
+                        {
+                            Game1.player.dialogueQuestionsAnswered.Add(parameters[1]);
+                            Monitor.Log($"{parameters[1]} has been added to the response list.", LogLevel.Debug);
+                        }
+                        break;
+
+                    case "mail":
+                        if (Game1.player.mailReceived.Contains(parameters[1]))
+                        {
+                            Monitor.Log($"{parameters[1]} Already exists within seen events.", LogLevel.Warn);
+                        }
+                        else
+                        {
+                            Game1.player.mailReceived.Add(parameters[1]);
+                            Monitor.Log($"{parameters[1]} has been added to the seen events list.", LogLevel.Debug);
+                        }
+                        break;
                 }
-                if (parameters[0] == "response")
-                {
-                    int parameterParse = int.Parse(parameters[1]);
-                    if(Game1.player.dialogueQuestionsAnswered.Contains(parameterParse))
-                    {
-                        Monitor.Log($"{parameters[1]} Already exists within the response list.", LogLevel.Warn);
-                        return;
-
-                    }
-                    else
-                    {
-                        Game1.player.dialogueQuestionsAnswered.Add(parameterParse);
-                        Monitor.Log($"{parameters[1]} has been added to the response list.", LogLevel.Debug);
-                        return;
-
-                    }
-                }
-                if (parameters[0] == "mail")
-                {
-                    if(Game1.player.mailReceived.Contains(parameters[1]))
-                    {
-                        Monitor.Log($"{parameters[1]} Already exists within seen events.", LogLevel.Warn);
-                        return;
-                    }
-                    else
-                    {
-                        Game1.player.mailReceived.Add(parameters[1]);
-                        Monitor.Log($"{parameters[1]} has been added to the seen events list.", LogLevel.Debug);
-                        return;
-
-                    }
-                }
-
-
-
             }
         }
-
-
     }
 }

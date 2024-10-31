@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj": {}
+    "E:\\Stardew Valley Mods\\Event Repeater\\EventRepeater.csproj": {}
   },
   "projects": {
-    "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj": {
-      "version": "4.5.3",
+    "E:\\Stardew Valley Mods\\Event Repeater\\EventRepeater.csproj": {
+      "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj",
+        "projectUniqueName": "E:\\Stardew Valley Mods\\Event Repeater\\EventRepeater.csproj",
         "projectName": "EventRepeater",
-        "projectPath": "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj",
+        "projectPath": "E:\\Stardew Valley Mods\\Event Repeater\\EventRepeater.csproj",
         "packagesPath": "C:\\Users\\missc\\.nuget\\packages\\",
-        "outputPath": "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\obj\\",
+        "outputPath": "E:\\Stardew Valley Mods\\Event Repeater\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -22,26 +22,31 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net5.0"
+          "net6.0"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net5.0": {
-            "targetAlias": "net5.0",
+          "net6.0": {
+            "targetAlias": "net6.0",
             "projectReferences": {}
           }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
         }
       },
       "frameworks": {
-        "net5.0": {
-          "targetAlias": "net5.0",
+        "net6.0": {
+          "targetAlias": "net6.0",
           "dependencies": {
             "Pathoschild.Stardew.ModBuildConfig": {
               "target": "Package",
-              "version": "[4.0.1, )"
+              "version": "[4.1.1, )"
             }
           },
           "imports": [
