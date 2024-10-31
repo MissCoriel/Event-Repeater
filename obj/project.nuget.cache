@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "XYcUI1BWeg56I1GS9oKXfNZHnaEiItU8jtr5jU+PfQrDsMyBMLHcNm6XE3ef/A5jbrpuZZtU+r49LPgdRtO7XA==",
+  "dgSpecHash": "uAMzPcHK37GxAs9E2nlP+afWy/xmOH+Fw5VDmDG3f/ZLfuLEIdSCNZuJv346ydPSXzm34XGachqByOsvVmexRQ==",
   "success": true,
-  "projectFilePath": "E:\\Stardew Vally Modding\\EventRepeater\\EventRepeater\\EventRepeater.csproj",
+  "projectFilePath": "E:\\Stardew Valley Mods\\Event Repeater\\EventRepeater.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\missc\\.nuget\\packages\\pathoschild.stardew.modbuildconfig\\4.0.1\\pathoschild.stardew.modbuildconfig.4.0.1.nupkg.sha512"
+    "C:\\Users\\missc\\.nuget\\packages\\pathoschild.stardew.modbuildconfig\\4.1.1\\pathoschild.stardew.modbuildconfig.4.1.1.nupkg.sha512"
   ],
   "logs": []
 }

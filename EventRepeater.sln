@@ -1,9 +1,9 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.2.32516.85
+VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventRepeater", "EventRepeater\EventRepeater.csproj", "{0F08BCFC-0E6E-498D-B215-FFBC6B7DF3FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventRepeater", "EventRepeater.csproj", "{A33848BC-9A7A-4480-9B29-C9E576A918E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0F08BCFC-0E6E-498D-B215-FFBC6B7DF3FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0F08BCFC-0E6E-498D-B215-FFBC6B7DF3FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0F08BCFC-0E6E-498D-B215-FFBC6B7DF3FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0F08BCFC-0E6E-498D-B215-FFBC6B7DF3FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A33848BC-9A7A-4480-9B29-C9E576A918E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A33848BC-9A7A-4480-9B29-C9E576A918E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A33848BC-9A7A-4480-9B29-C9E576A918E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A33848BC-9A7A-4480-9B29-C9E576A918E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {76875EF2-2AD9-4FE2-9E1D-A96C36616AAA}
+		SolutionGuid = {92F2D6FC-DAD4-41A0-99F7-981658E0C5FA}
 	EndGlobalSection
 EndGlobal

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using StardewModdingAPI;
+﻿using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
-
 using StardewValley;
+using System;
+using System.Collections.Generic;
 
 namespace EventRepeater.Framework;
 internal static class AssetManager
@@ -20,8 +17,8 @@ internal static class AssetManager
 
     private static IMonitor Monitor = null!;
 
-    internal static Lazy<HashSet<int>> EventsToForget { get; private set; } = new(() => PopulateAsset(EventsToRepeatName));
-    internal static Lazy<HashSet<int>> ResponseToForget { get; private set; } = new(() => PopulateAsset(ResponsesToRepeatName));
+    internal static Lazy<HashSet<string>> EventsToForget { get; private set; } = new(() => PopulateAsset(EventsToRepeatName));
+    internal static Lazy<HashSet<string>> ResponseToForget { get; private set; } = new(() => PopulateAsset(ResponsesToRepeatName));
 
     internal static void Initialize(IGameContentHelper helper, IMonitor monitor)
     {
@@ -37,7 +34,7 @@ internal static class AssetManager
             || e.NameWithoutLocale.IsEquivalentTo(EventsToRepeatAsset)
             || e.NameWithoutLocale.IsEquivalentTo(ResponsesToRepeatAsset))
         {
-            e.LoadFrom(static () => new Dictionary<string, string>(), AssetLoadPriority.Exclusive); 
+            e.LoadFrom(static () => new Dictionary<string, string>(), AssetLoadPriority.Exclusive);
         }
     }
 
@@ -49,16 +46,9 @@ internal static class AssetManager
             ResponseToForget = new(() => PopulateAsset(ResponsesToRepeatName));
     }
 
-    private static HashSet<int> PopulateAsset(string assetName)
+    private static HashSet<string> PopulateAsset(string assetName)
     {
-        HashSet<int> ret = new();
-        foreach (var str in Game1.content.Load<Dictionary<string, string>>(assetName).Keys)
-        {
-            if (int.TryParse(str, out var val))
-                ret.Add(val);
-            else
-                Monitor.Log($"{str} is not a valid ID for {assetName}, skipping", LogLevel.Warn);
-        }
-        return ret;
+        var asset = Game1.content.Load<Dictionary<string, string>>(assetName);
+        return new HashSet<string>(asset.Keys);
     }
 }
